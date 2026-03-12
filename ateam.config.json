@@ -1,0 +1,14 @@
+{
+	"packageManager": "bun",
+	"checks": {
+		"lint": "bun run lint",
+		"unit": "bun test"
+	},
+	"precheck": ["lint", "unit"],
+	"postcheck": ["lint", "unit"],
+	"devServer": {
+		"url": "http://localhost:3000",
+		"start": "bun run dev",
+		"managed": false
+	}
+}

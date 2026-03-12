@@ -1,0 +1,17 @@
+{
+  "env": {
+    "ATEAM_PROJECT_ID": "shopify-sync",
+    "ATEAM_API_URL": "http://kanban-viewer.orb.local:3000",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "ATEAM_TEAMMATE_MODE": "auto"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(mkdir *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Write(src/**)",
+      "Edit(src/**)"
+    ]
+  }
+}
