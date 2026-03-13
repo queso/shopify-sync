@@ -12,7 +12,10 @@ interface DbReader {
 	getRecentChanges(since: Date): ChangeLogEntry[];
 }
 
-export async function runDigestJob(db: DbReader): Promise<DigestJobResult> {
+export async function runDigestJob(
+	db: DbReader,
+	sendEmail: (changes: ChangeLogEntry[]) => Promise<void> = sendDigestEmail,
+): Promise<DigestJobResult> {
 	const since = new Date(Date.now() - TWENTY_FOUR_HOURS_MS);
 	const changes = db.getRecentChanges(since);
 
@@ -22,7 +25,7 @@ export async function runDigestJob(db: DbReader): Promise<DigestJobResult> {
 	}
 
 	try {
-		await sendDigestEmail(changes);
+		await sendEmail(changes);
 		console.log(`digest: sent — ${changes.length} change(s) reported`);
 		return { changeCount: changes.length, emailSent: true };
 	} catch (error) {

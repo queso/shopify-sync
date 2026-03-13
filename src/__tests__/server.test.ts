@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { runDigestJob } from "../cron/digest";
+import { runPollJob } from "../cron/poll";
+import { initDb } from "../db/index";
+import { _setDb, _setDigestRunner, _setPollRunner, app } from "../index";
 
-// ─── Mock cron jobs BEFORE importing the module under test ───────────────────
-// mock.module() must be called before the import that pulls in the real modules.
+// ─── Mock job runners (no mock.module — avoids global module registry pollution) ─
 
 const mockRunPollJob = mock(async () => ({
 	success: true,
@@ -13,20 +16,6 @@ const mockRunDigestJob = mock(async () => ({
 	emailSent: false,
 	changeCount: 0,
 }));
-
-mock.module("../cron/poll", () => ({
-	runPollJob: mockRunPollJob,
-}));
-
-mock.module("../cron/digest", () => ({
-	runDigestJob: mockRunDigestJob,
-}));
-
-import { initDb } from "../db/index";
-// ─── Module under test ───────────────────────────────────────────────────────
-// Import AFTER mocks are registered. We import `app` only (not startServer),
-// so Bun.cron is never called during tests.
-import { _setDb, app } from "../index";
 
 // ─── Environment setup ───────────────────────────────────────────────────────
 
@@ -44,12 +33,16 @@ describe("Hono server (app)", () => {
 	beforeEach(() => {
 		for (const [k, v] of Object.entries(TEST_ENV)) process.env[k] = v;
 		_setDb(initDb(":memory:"));
+		_setPollRunner(mockRunPollJob as unknown as typeof runPollJob);
+		_setDigestRunner(mockRunDigestJob as unknown as typeof runDigestJob);
 		mockRunPollJob.mockClear();
 		mockRunDigestJob.mockClear();
 	});
 
 	afterEach(() => {
 		_setDb(null);
+		_setPollRunner(runPollJob);
+		_setDigestRunner(runDigestJob);
 		for (const k of Object.keys(TEST_ENV)) delete process.env[k];
 	});
 

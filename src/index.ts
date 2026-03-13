@@ -29,6 +29,17 @@ export function _setDb(testDb: Db | null): void {
 	db = testDb;
 }
 
+// Job runner overrides — used in tests to avoid mock.module() module pollution.
+let _pollRunner: typeof runPollJob = runPollJob;
+let _digestRunner: typeof runDigestJob = runDigestJob;
+
+export function _setPollRunner(fn: typeof runPollJob): void {
+	_pollRunner = fn;
+}
+export function _setDigestRunner(fn: typeof runDigestJob): void {
+	_digestRunner = fn;
+}
+
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
 const HealthResponse = z.object({
@@ -157,7 +168,7 @@ app.openapi(healthRoute, (c) => {
 app.openapi(pollRoute, async (c) => {
 	if (!db) return c.json({ error: "Server not ready" as const }, 503);
 	try {
-		const result = await runPollJob(db, shopifyClient);
+		const result = await _pollRunner(db, shopifyClient);
 		if (result.success) lastPollAt = new Date().toISOString();
 		return c.json(result, 200);
 	} catch (error) {
@@ -169,7 +180,7 @@ app.openapi(pollRoute, async (c) => {
 app.openapi(digestRoute, async (c) => {
 	if (!db) return c.json({ error: "Server not ready" as const }, 503);
 	try {
-		const result = await runDigestJob(db);
+		const result = await _digestRunner(db);
 		if (result.emailSent || result.changeCount === 0) {
 			lastDigestAt = new Date().toISOString();
 			return c.json(result, 200);

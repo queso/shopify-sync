@@ -1,15 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import type { ChangeLogEntry } from "../types";
-
-// sendDigestEmail is a real named export — mock.module works for it
-const mockSendDigestEmail = mock(async (_changes: ChangeLogEntry[]) => {});
-
-mock.module("../email/index", () => ({
-	sendDigestEmail: mockSendDigestEmail,
-}));
-
-// ─── Module under test ───────────────────────────────────────────────────────
 import { runDigestJob } from "../cron/digest";
+import type { ChangeLogEntry } from "../types";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -44,6 +35,7 @@ function makeEntry(
 describe("runDigestJob()", () => {
 	const mockGetRecentChanges = mock(() => [] as ChangeLogEntry[]);
 	const mockDb = { getRecentChanges: mockGetRecentChanges };
+	const mockSendDigestEmail = mock(async (_changes: ChangeLogEntry[]) => {});
 
 	beforeEach(() => {
 		for (const [k, v] of Object.entries(TEST_ENV)) process.env[k] = v;
@@ -62,7 +54,7 @@ describe("runDigestJob()", () => {
 			makeEntry({ change_type: "added" }),
 		]);
 
-		await runDigestJob(mockDb);
+		await runDigestJob(mockDb, mockSendDigestEmail);
 
 		expect(mockGetRecentChanges).toHaveBeenCalledWith(expect.any(Date));
 
@@ -87,7 +79,7 @@ describe("runDigestJob()", () => {
 		];
 		mockGetRecentChanges.mockImplementation(() => changes);
 
-		await runDigestJob(mockDb);
+		await runDigestJob(mockDb, mockSendDigestEmail);
 
 		expect(mockSendDigestEmail).toHaveBeenCalledTimes(1);
 		const passedChanges = mockSendDigestEmail.mock
@@ -102,7 +94,7 @@ describe("runDigestJob()", () => {
 			makeEntry({ change_type: "low_stock", id: 2 }),
 		]);
 
-		const result = await runDigestJob(mockDb);
+		const result = await runDigestJob(mockDb, mockSendDigestEmail);
 
 		expect(result.changeCount).toBe(2);
 		expect(result.emailSent).toBe(true);
@@ -113,7 +105,7 @@ describe("runDigestJob()", () => {
 	it("should NOT call sendDigestEmail when no changes are found", async () => {
 		mockGetRecentChanges.mockImplementation(() => []);
 
-		await runDigestJob(mockDb);
+		await runDigestJob(mockDb, mockSendDigestEmail);
 
 		expect(mockSendDigestEmail).not.toHaveBeenCalled();
 	});
@@ -121,7 +113,7 @@ describe("runDigestJob()", () => {
 	it("should return { changeCount: 0, emailSent: false } when no changes are found", async () => {
 		mockGetRecentChanges.mockImplementation(() => []);
 
-		const result = await runDigestJob(mockDb);
+		const result = await runDigestJob(mockDb, mockSendDigestEmail);
 
 		expect(result.changeCount).toBe(0);
 		expect(result.emailSent).toBe(false);
@@ -138,7 +130,9 @@ describe("runDigestJob()", () => {
 		});
 
 		// Must not throw — the job catches and logs errors to avoid crashing the process
-		await expect(runDigestJob(mockDb)).resolves.toMatchObject({
+		await expect(
+			runDigestJob(mockDb, mockSendDigestEmail),
+		).resolves.toMatchObject({
 			emailSent: false,
 		});
 	});
@@ -151,7 +145,7 @@ describe("runDigestJob()", () => {
 			throw new Error("Network error");
 		});
 
-		const result = await runDigestJob(mockDb);
+		const result = await runDigestJob(mockDb, mockSendDigestEmail);
 
 		expect(result.emailSent).toBe(false);
 		expect(result.changeCount).toBe(1);
