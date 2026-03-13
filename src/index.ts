@@ -226,6 +226,7 @@ export function startServer(): void {
 
 	Bun.serve({
 		port: config.PORT,
+		idleTimeout: 120,
 		fetch: app.fetch,
 	});
 
