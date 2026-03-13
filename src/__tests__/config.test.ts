@@ -59,22 +59,16 @@ describe("config module", () => {
 		const config = buildConfig();
 
 		expect(config.PORT).toBe(3000);
-		expect(config.POLL_CRON).toBe("0 */4 * * *");
-		expect(config.DIGEST_CRON).toBe("0 7 * * *");
 		expect(config.DATABASE_PATH).toBe("./data/shopify-sync.db");
 	});
 
 	it("uses provided values for optional vars when set", () => {
 		setRequiredEnv();
 		process.env.PORT = "8080";
-		process.env.POLL_CRON = "0 */6 * * *";
-		process.env.DIGEST_CRON = "0 8 * * *";
 		process.env.DATABASE_PATH = "/custom/path.db";
 		const config = buildConfig();
 
 		expect(config.PORT).toBe(8080);
-		expect(config.POLL_CRON).toBe("0 */6 * * *");
-		expect(config.DIGEST_CRON).toBe("0 8 * * *");
 		expect(config.DATABASE_PATH).toBe("/custom/path.db");
 	});
 

@@ -220,29 +220,9 @@ export function startServer(): void {
 	}
 
 	console.log(`shopify-sync starting on port ${config.PORT}`);
-	console.log(`  poll cron:   ${config.POLL_CRON}`);
-	console.log(`  digest cron: ${config.DIGEST_CRON}`);
-
-	Bun.cron(config.POLL_CRON, async () => {
-		console.log("cron: running poll job");
-		try {
-			const result = await runPollJob(db as Db, shopifyClient);
-			if (result.success) lastPollAt = new Date().toISOString();
-		} catch (error) {
-			console.error("cron: poll job failed", error);
-		}
-	});
-
-	Bun.cron(config.DIGEST_CRON, async () => {
-		console.log("cron: running digest job");
-		try {
-			const result = await runDigestJob(db as Db);
-			if (result.emailSent || result.changeCount === 0)
-				lastDigestAt = new Date().toISOString();
-		} catch (error) {
-			console.error("cron: digest job failed", error);
-		}
-	});
+	console.log(
+		"  scheduling: POST /poll and POST /digest via external cron (e.g. K8s CronJob)",
+	);
 
 	Bun.serve({
 		port: config.PORT,
